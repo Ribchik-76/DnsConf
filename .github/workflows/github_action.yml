@@ -26,36 +26,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Check NextDNS profile access
-        run: |
-          python3 - <<'PY'
-          import json, os, urllib.request, urllib.error
-          profile = os.environ["CLIENT_ID"].strip()
-          key = os.environ["AUTH_SECRET"].strip()
-          print("Profile ID length:", len(profile))
-          print("API key length:", len(key))
-          request = urllib.request.Request("https://api.nextdns.io/profiles/" + profile, headers={"X-Api-Key": key, "Content-Type": "application/json", "Accept": "application/json", "User-Agent": "DnsConf/1.0"})
-          try:
-              with urllib.request.urlopen(request, timeout=20) as response:
-                  payload = json.load(response)
-                  data = payload.get("data", {})
-                  print("Profile read status:", response.status)
-                  print("Profile field names:", sorted(data.keys()) if isinstance(data, dict) else type(data).__name__)
-          except urllib.error.HTTPError as error:
-              print("Profile read status:", error.code)
-              try:
-                  error_data = json.load(error)
-                  print("API error codes:", [item.get("code") for item in error_data.get("errors", [])])
-              except (ValueError, AttributeError):
-                  print("API error response type:", error.headers.get("Content-Type"))
-              if error.code in (403, 404):
-                  request = urllib.request.Request("https://api.nextdns.io/profiles", headers={"X-Api-Key": key, "Content-Type": "application/json", "Accept": "application/json", "User-Agent": "DnsConf/1.0"})
-                  with urllib.request.urlopen(request, timeout=20) as response:
-                      data = json.load(response).get("data", [])
-                      print("Available profile IDs:", [item.get("id") for item in data])
-              raise SystemExit("NextDNS profile is not accessible with the configured credentials")
-          PY
-
       - name: Set up JDK 26
         uses: actions/setup-java@v5
         with:
