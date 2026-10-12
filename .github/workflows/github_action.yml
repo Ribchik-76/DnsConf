@@ -17,7 +17,7 @@ jobs:
       EXCLUDE_REDIRECT: ${{ vars.EXCLUDE_REDIRECT }}
       DONOR_DNS: ${{ vars.DONOR_DNS }}
 
-      CLIENT_ID: ${{ secrets.CLIENT_ID }}
+      CLIENT_ID: ${{ vars.CLIENT_ID }}
       AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
 
       TZ: Europe/Moscow
@@ -35,45 +35,6 @@ jobs:
 
       - name: Build with Maven
         run: mvn -B clean package
-
-      - name: Check NextDNS API using Java
-        run: |
-          cat > /tmp/NextDNSAccessCheck.java <<'JAVA'
-          import java.net.URI;
-          import java.net.http.*;
-          import java.time.Duration;
-          import com.google.gson.*;
-          class NextDNSAccessCheck {
-            public static void main(String[] args) throws Exception {
-              String profile = System.getenv("CLIENT_ID").trim();
-              String key = System.getenv("AUTH_SECRET").trim();
-              HttpClient client = HttpClient.newHttpClient();
-              String[] paths = {"/profiles/" + profile, "/profiles"};
-              for (int i = 0; i < paths.length; i++) {
-                HttpRequest request = HttpRequest.newBuilder(URI.create("https://api.nextdns.io" + paths[i]))
-                  .header("X-Api-Key", key).header("Content-Type", "application/json")
-                  .timeout(Duration.ofSeconds(20)).GET().build();
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                System.out.println((i == 0 ? "Configured profile" : "Profile list") + " HTTP " + response.statusCode());
-                try {
-                  JsonObject payload = JsonParser.parseString(response.body()).getAsJsonObject();
-                  if (payload.has("errors")) {
-                    for (JsonElement item : payload.getAsJsonArray("errors"))
-                      System.out.println("API error code: " + item.getAsJsonObject().get("code"));
-                  } else if (payload.has("data")) {
-                    JsonElement data = payload.get("data");
-                    if (data.isJsonObject()) System.out.println("Profile field names: " + data.getAsJsonObject().keySet());
-                    if (data.isJsonArray()) for (JsonElement item : data.getAsJsonArray()) {
-                      JsonObject obj = item.getAsJsonObject();
-                      if (obj.has("id")) System.out.println("Available profile ID: " + obj.get("id"));
-                    }
-                  }
-                } catch (Exception e) { System.out.println("API did not return JSON"); }
-              }
-            }
-          }
-          JAVA
-          java --enable-preview --class-path target/dns-block-and-redirect-configurer-1.0-SNAPSHOT.jar /tmp/NextDNSAccessCheck.java
 
       - name: Run application
         run: |
