@@ -34,7 +34,7 @@ jobs:
           key = os.environ["AUTH_SECRET"].strip()
           print("Profile ID length:", len(profile))
           print("API key length:", len(key))
-          request = urllib.request.Request("https://api.nextdns.io/profiles/" + profile, headers={"X-Api-Key": key})
+          request = urllib.request.Request("https://api.nextdns.io/profiles/" + profile, headers={"X-Api-Key": key, "Content-Type": "application/json", "Accept": "application/json", "User-Agent": "DnsConf/1.0"})
           try:
               with urllib.request.urlopen(request, timeout=20) as response:
                   payload = json.load(response)
@@ -49,7 +49,7 @@ jobs:
               except (ValueError, AttributeError):
                   print("API error response type:", error.headers.get("Content-Type"))
               if error.code in (403, 404):
-                  request = urllib.request.Request("https://api.nextdns.io/profiles", headers={"X-Api-Key": key})
+                  request = urllib.request.Request("https://api.nextdns.io/profiles", headers={"X-Api-Key": key, "Content-Type": "application/json", "Accept": "application/json", "User-Agent": "DnsConf/1.0"})
                   with urllib.request.urlopen(request, timeout=20) as response:
                       data = json.load(response).get("data", [])
                       print("Available profile IDs:", [item.get("id") for item in data])
