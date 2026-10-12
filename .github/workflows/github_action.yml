@@ -43,7 +43,12 @@ jobs:
                   print("Profile field names:", sorted(data.keys()) if isinstance(data, dict) else type(data).__name__)
           except urllib.error.HTTPError as error:
               print("Profile read status:", error.code)
-              if error.code == 404:
+              try:
+                  error_data = json.load(error)
+                  print("API error codes:", [item.get("code") for item in error_data.get("errors", [])])
+              except (ValueError, AttributeError):
+                  print("API error response type:", error.headers.get("Content-Type"))
+              if error.code in (403, 404):
                   request = urllib.request.Request("https://api.nextdns.io/profiles", headers={"X-Api-Key": key})
                   with urllib.request.urlopen(request, timeout=20) as response:
                       data = json.load(response).get("data", [])
